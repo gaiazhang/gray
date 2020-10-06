@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		<meta name="author" content="UXDC" />
+		<meta
+			name="viewport"
+			content="initial-scale=1, maximum-scale=3, minimum-scale=1, user-scalable=no"
+		/>
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="format-detection" content="telphone=no, email=no" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta http-equiv="Cache-Control" content="no-siteapp" />
+		<meta http-equiv="x-rim-auto-match" content="none" />
+		<meta name="HandheldFriendly" content="true" />
+		<meta name="format-detection" content="telephone=no" />
+		<!--     <script src="//img6.didistatic.com/static/tms/cdn/z/apollo-jsdk/apollo-jsdk/1.0.5/apollo.min.js"></script> -->
+		<title>灰度demo</title>
+	</head>
+	<body>
+		<style type="text/css">
+			.index-loading {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: rgba(0, 0, 0, 0.3);
+			}
+
+			.index-loading .index-load-content {
+				color: #fff;
+				background-color: rgba(0, 0, 0, 0.8);
+				top: 50%;
+				left: 50%;
+				position: fixed;
+				transform: translate(-50%, -50%);
+				-webkit-transform: translate(-50%, -50%);
+				z-index: 1000;
+				border-radius: 2px;
+				text-align: center;
+				padding: 20px 30px;
+				font-size: 12px;
+			}
+		</style>
+		<noscript
+			>您的浏览器禁用了javascript脚本，请设置里允许javascript执行</noscript
+		>
+		<div id="root" class="container h100">
+			<div class="index-loading">
+				<div class="index-load-content">页面加载中，请稍后...</div>
+			</div>
+		</div>
+		<script type="text/javascript">
+			window.static_online_ulr =
+				'//github.com/gaiazhang/gray-version/blob/gh-pages/'
+			window.static_location_ulr = ''
+
+			window.loadScript = function(url, callback, errorCallBack) {
+				var script = document.createElement('script'),
+					head = document.getElementsByTagName('head')[0]
+				script.type = 'text/javascript'
+				if (script.readyState) {
+					//IE
+					script.onreadystatechange = function() {
+						if (
+							script.readyState == 'loaded' ||
+							script.readyState == 'complete'
+						) {
+							script.onreadystatechange = null
+							head.removeChild(script)
+							callback && callback()
+						}
+					}
+				} else {
+					//Others
+					script.onload = function() {
+						head.removeChild(script)
+						callback && callback()
+					}
+				}
+				script.src = url
+				head.appendChild(script)
+				script.onerror = function(error) {
+					errorCallBack && errorCallBack(error)
+				}
+			}
+			;(function() {
+				// 更新版本
+				function updateversion(phone, company_id, newVersion) {
+					var reload = false
+
+					// 新版本不能比兜底版本小
+					if (diffVersion(defaultVersion, newVersion) === defaultVersion) {
+						return null
+					}
+
+					// 如果没有本地存储版本
+					if (localVersion !== newVersion) {
+						// 和默认版本还不一致
+						reload = true
+					}
+					localVersion = newVersion
+					localStorage['esappVersion_' + phone + '_' + company_id] = newVersion
+					if (reload === true) {
+						window.location.reload()
+					}
+				}
+
+				// 灰度版本控制
+				function getApollo(company_id, phone, cb, errCb) {
+					function getToggle() {
+						Apollo.getToggle(
+							{
+								name: 'esapp_h5_version',
+								key: phone,
+								phone: phone,
+								company_id: company_id,
+							},
+							function(result) {
+								if (!result.code) {
+									var ABTest = result.data['esapp_h5_version'] || {}
+									var params = ABTest.params || {}
+									var newVersion = params.version || {}
+									if (ABTest && ABTest.isAllow()) {
+										cb(phone, company_id, newVersion)
+									} else {
+										errCb('灰度初始化失败!')
+									}
+								} else {
+									errCb('灰度请求失败!')
+								}
+							}
+						)
+					}
+					cb = cb || function() {}
+					errCb = errCb || function() {}
+					if (window.Apollo) {
+						getToggle()
+					} else {
+						window.loadScript(
+							'//img-ys011.didistatic.com/static/apollo_js/apollo.min.js',
+							getToggle
+						)
+					}
+				}
+
+				// 版本对比 防止apollo JSSDK DNS劫持，一直无法更新版本
+				function diffVersion(ver1, ver2) {
+					// 必须手机号和公司ID都有
+					if (!(phone && company_id)) {
+						return null
+					}
+
+					function toNum(a) {
+						var a = a.toString()
+						var c = a.split('.')
+						var num_place = ['', '0', '00', '000', '0000']
+						var r = num_place.reverse()
+						for (var i = 0; i < c.length; i++) {
+							var len = c[i].length
+							c[i] = r[len] + c[i]
+						}
+						var res = c.join('')
+						return res
+					}
+
+					function cpr_version(a, b) {
+						var _a = toNum(a)
+						var _b = toNum(b)
+
+						if (_a === _b) {
+							// console.log("版本号相同！版本号为："+a);
+							return a
+						}
+						if (_a > _b) {
+							// console.log("版本号"+a+"是新版本！");
+							return a
+						}
+						if (_a < _b) {
+							// console.log("版本号"+b+"是新版本！");
+							return b
+						}
+					}
+
+					return cpr_version(ver1, ver2)
+				}
+
+				// 开始请求config
+				function fetchConfigJS(localVersion) {
+					// 加载js
+					// 对比默认版本js
+					// 是否重载页面
+					var onlineConfig =
+						window.static_online_ulr + localVersion + '/config.js'
+
+					var preconfig =
+						window.static_online_ulr + 'config.js?t=' + new Date().getTime()
+
+					var config_url =
+						location.hostname.indexOf('pre') === 0 ? preconfig : onlineConfig
+					window.loadScript(
+						config_url,
+						function() {},
+						function() {
+							window.alert('config.js加载错误，' + localVersion)
+						}
+					)
+				}
+
+				var phone = 1
+				var company_id = 1
+
+				// 初始化默认
+				var defaultVersion = '0.0.309'
+				var localVersion =
+					localStorage['esappVersion_' + phone + '_' + company_id] ||
+					defaultVersion
+				localStorage['esappVersion_' + phone + '_' + company_id] = localVersion
+
+				if (sessionStorage.userInfo) {
+					var userInfo = JSON.parse(sessionStorage.userInfo)
+					phone = userInfo.phone
+					company_id = userInfo.company_id
+					if (
+						phone &&
+						company_id &&
+						localStorage['esappVersion_' + phone + '_' + company_id]
+					) {
+						localVersion =
+							localStorage['esappVersion_' + phone + '_' + company_id]
+						// 防止本地存储里版本过低
+					}
+				}
+
+				// 本地版本 不能比兜底版本小
+				localVersion = diffVersion(defaultVersion, localVersion)
+				localStorage['esappVersion_' + phone + '_' + company_id] = localVersion
+
+				// 开始请求版本
+				fetchConfigJS(localVersion)
+
+				//是否去apollo查询最新版本，取决于是否有手机号和公司ID
+				getApollo(company_id, phone, updateversion, function(errmsg) {})
+			})()
+		</script>
+	</body>
+</html>

@@ -6,7 +6,7 @@
 		"serve": "vue-cli-service serve",
 		"build": "vue-cli-service build && npm run cp",
 		"lint": "vue-cli-service lint",
-		"cp": "cp ./src/index_prod.html dist/index.html"
+		"cp": "cp ./src/index_prod.html dist/index.html && cp ./src/index_prod.html ./index.html"
 	},
 	"onlineStaticConfig": {
 		"url": "https://github.com/gaiazhang",
