@@ -1,6 +1,6 @@
 {
 	"name": "gray-demo",
-	"version": "0.0.323",
+	"version": "0.0.1",
 	"private": true,
 	"scripts": {
 		"serve": "vue-cli-service serve",
@@ -9,9 +9,9 @@
 		"cp": "cp ./src/index_prod.html dist/index.html"
 	},
 	"onlineStaticConfig": {
-		"url": "https://es-static.xiaojukeji.com",
-		"jsPath": "/static/web/esapp/js",
-		"versionPath": "/static/web/esapp"
+		"url": "https://github.com/gaiazhang",
+		"jsPath": "/gray-version/dist/js",
+		"versionPath": "/gray-version/dist"
 	},
 	"localStaticConfig": {
 		"jsPath": "/dist/js",
